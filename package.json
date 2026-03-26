@@ -1,0 +1,25 @@
+{
+  "name": "lookin-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP Server for Lookin iOS UI debugger",
+  "main": "dist/index.js",
+  "bin": {
+    "lookin-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node18 --outfile=dist/mcp-server.js",
+    "dev": "ts-node src/index.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "esbuild": "^0.20.0",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
