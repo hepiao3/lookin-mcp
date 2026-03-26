@@ -30,5 +30,5 @@ export async function handleGetAttributes(args: {
   oid: number;
 }): Promise<string> {
   const result = await lookinClient.getAttributes(args.oid);
-  return JSON.stringify(result, null, 2);
+  return JSON.stringify(result);
 }
