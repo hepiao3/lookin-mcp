@@ -2,12 +2,15 @@
   "name": "lookin-mcp-server",
   "version": "1.0.0",
   "description": "MCP Server for Lookin iOS UI debugger",
-  "main": "dist/index.js",
+  "main": "dist/mcp-server.js",
   "bin": {
-    "lookin-mcp": "dist/index.js"
+    "lookin-mcp-server": "dist/mcp-server.js"
   },
+  "files": [
+    "dist/mcp-server.js"
+  ],
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --platform=node --target=node18 --outfile=dist/mcp-server.js",
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node18 --banner:js='#!/usr/bin/env node' --outfile=dist/mcp-server.js",
     "dev": "ts-node src/index.ts",
     "typecheck": "tsc --noEmit"
   },
