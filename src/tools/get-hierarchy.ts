@@ -30,16 +30,19 @@ function filterItems(
   currentDepth = 0
 ): HierarchyItem[] {
   if (maxDepth > 0 && currentDepth >= maxDepth) return [];
-  return items
-    .filter((item) => includeSystem || !item.sys)
-    .map((item) => {
-      // 过滤掉 sys 字段本身，减少输出体积
+  const result: HierarchyItem[] = [];
+  for (const item of items) {
+    const filteredChildren = filterItems(item.children, includeSystem, maxDepth, currentDepth + 1);
+    if (includeSystem || !item.sys) {
+      // 保留此节点，去掉 sys 标记以减少输出体积
       const { sys, ...rest } = item;
-      return {
-        ...rest,
-        children: filterItems(item.children, includeSystem, maxDepth, currentDepth + 1),
-      };
-    });
+      result.push({ ...rest, children: filteredChildren });
+    } else {
+      // 系统视图被过滤：将其子节点提升到当前层级，避免丢失 app 自定义视图
+      result.push(...filteredChildren);
+    }
+  }
+  return result;
 }
 
 export async function handleGetHierarchy(args: {
