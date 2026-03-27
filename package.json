@@ -10,7 +10,7 @@
     "dist/mcp-server.js"
   ],
   "scripts": {
-    "build": "esbuild src/index.ts --bundle --platform=node --target=node18 --banner:js='#!/usr/bin/env node' --outfile=dist/mcp-server.js",
+    "build": "esbuild src/index.ts --bundle --platform=node --target=node18 --outfile=dist/mcp-server.js",
     "dev": "ts-node src/index.ts",
     "typecheck": "tsc --noEmit"
   },
