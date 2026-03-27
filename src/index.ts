@@ -21,6 +21,7 @@ import { getHierarchyTool, handleGetHierarchy } from "./tools/get-hierarchy.js";
 import { getAttributesTool, handleGetAttributes } from "./tools/get-attributes.js";
 import { modifyAttributeTool, handleModifyAttribute } from "./tools/modify-attribute.js";
 import { getScreenshotTool, handleGetScreenshot } from "./tools/get-screenshot.js";
+import { refreshScreenshotTool, handleRefreshScreenshot } from "./tools/refresh-screenshot.js";
 import { invokeMethodTool, handleInvokeMethod } from "./tools/invoke-method.js";
 
 // ──────────────────────────────────────────────────────────────
@@ -49,6 +50,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     getAttributesTool,
     modifyAttributeTool,
     getScreenshotTool,
+    refreshScreenshotTool,
     invokeMethodTool,
   ],
 }));
@@ -89,6 +91,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "lookin_get_screenshot": {
         const content = await handleGetScreenshot(args as { oid: number });
         return { content };
+      }
+
+      case "lookin_refresh_screenshot": {
+        const text = await handleRefreshScreenshot(args as { oid: number });
+        return { content: [{ type: "text", text }] };
       }
 
       case "lookin_invoke_method": {

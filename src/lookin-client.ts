@@ -141,6 +141,10 @@ export const lookinClient = {
     return request<ScreenshotResult>("GET", path);
   },
 
+  refreshScreenshot(oid: number): Promise<{ refreshed: boolean; screenshotCount: number }> {
+    return request<{ refreshed: boolean; screenshotCount: number }>("POST", `/view/${oid}/refresh-screenshot`);
+  },
+
   invokeMethod(oid: number, method: string): Promise<{ result: string }> {
     return request<{ result: string }>("POST", "/console/invoke", {
       oid,
