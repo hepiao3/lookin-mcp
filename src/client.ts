@@ -1,9 +1,10 @@
 /**
- * Lookin HTTP 客户端
- * 封装与 Lookin.app 内嵌 HTTP Server（localhost:47200）的通讯
+ * LookinServer HTTP 客户端
+ * 封装与 LookinServer 内置 HTTP Server（127.0.0.1:47190）的通讯
+ * 直连 iOS App，无需 Lookin.app 中转
  */
 
-const BASE_URL = "http://localhost:47200";
+const BASE_URL = "http://127.0.0.1:47190";
 const REQUEST_TIMEOUT_MS = 15000;
 
 export interface LookinResponse<T = unknown> {
@@ -14,11 +15,11 @@ export interface LookinResponse<T = unknown> {
 
 export interface HierarchyItem {
   oid: number;
-  title: string;
-  hidden?: true;   // omitted when false
-  alpha?: number;  // omitted when 1.0
-  sys?: true;      // omitted when not a system class
+  className: string;
+  hidden?: boolean;
+  alpha?: number;
   frame: [number, number, number, number]; // [x, y, w, h]
+  customTitle?: string;
   children: HierarchyItem[];
 }
 
@@ -58,10 +59,14 @@ export interface ScreenshotResult {
 }
 
 export interface StatusResult {
-  connected: boolean;
+  active: boolean;
   appName?: string;
   bundleId?: string;
   osDescription?: string;
+  deviceDescription?: string;
+  screenWidth?: number;
+  screenHeight?: number;
+  screenScale?: number;
 }
 
 async function request<T>(
@@ -83,14 +88,14 @@ async function request<T>(
     const json = (await response.json()) as LookinResponse<T>;
 
     if (!json.success) {
-      throw new Error(json.error ?? "Unknown error from Lookin");
+      throw new Error(json.error ?? "Unknown error from LookinServer");
     }
 
     return json.data as T;
   } catch (err) {
     if (err instanceof Error && err.name === "AbortError") {
       throw new Error(
-        "Request to Lookin timed out. Make sure Lookin.app is running."
+        "Request to LookinServer timed out. Make sure the iOS App with LookinServer is running."
       );
     }
     if (
@@ -99,7 +104,8 @@ async function request<T>(
         err.message.includes("fetch failed"))
     ) {
       throw new Error(
-        "Cannot connect to Lookin.app. Please make sure Lookin is running on your Mac."
+        "Cannot connect to LookinServer (127.0.0.1:47190). " +
+        "Make sure the iOS App with LookinServer is running in the foreground."
       );
     }
     throw err;
@@ -123,26 +129,19 @@ export const lookinClient = {
 
   modifyAttribute(
     oid: number,
-    identifier: string | undefined,
     setterSelector: string,
     attrType: number,
     value: unknown
   ): Promise<{ modified: boolean }> {
     return request<{ modified: boolean }>("POST", `/view/${oid}/attributes`, {
-      identifier,
       setterSelector,
       attrType,
       value,
     });
   },
 
-  getScreenshot(oid?: number): Promise<ScreenshotResult> {
-    const path = oid !== undefined ? `/view/${oid}/screenshot` : `/view/0/screenshot`;
-    return request<ScreenshotResult>("GET", path);
-  },
-
-  refreshScreenshot(oid: number): Promise<{ refreshed: boolean; screenshotCount: number }> {
-    return request<{ refreshed: boolean; screenshotCount: number }>("POST", `/view/${oid}/refresh-screenshot`);
+  getScreenshot(oid: number): Promise<ScreenshotResult> {
+    return request<ScreenshotResult>("GET", `/view/${oid}/screenshot`);
   },
 
   invokeMethod(oid: number, method: string): Promise<{ result: string }> {

@@ -1,5 +1,5 @@
 import { Tool } from "@modelcontextprotocol/sdk/types.js";
-import { lookinClient } from "../lookin-client.js";
+import { lookinClient } from "../client.js";
 
 export const invokeMethodTool: Tool = {
   name: "lookin_invoke_method",
@@ -11,14 +11,14 @@ export const invokeMethodTool: Tool = {
     "- method: 'backgroundColor' → 获取背景色\n" +
     "- method: 'subviews' → 获取子视图列表\n" +
     "- method: 'superview' → 获取父视图\n" +
-    "- method: 'recursiveDescription' → 获取视图层级文本描述\n\n" +
-    "需要 Lookin.app 已连接 iOS 设备/模拟器。",
+    "- method: 'recursiveDescription' → 获取视图层级文本描述",
   inputSchema: {
     type: "object" as const,
     properties: {
       oid: {
         type: "number",
-        description: "目标对象的 object ID（从 lookin_get_hierarchy 的 oid 字段获取）",
+        description:
+          "目标对象的 object ID（从 lookin_get_hierarchy 的 oid 字段获取）",
       },
       method: {
         type: "string",

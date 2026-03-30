@@ -1,5 +1,5 @@
 import { Tool } from "@modelcontextprotocol/sdk/types.js";
-import { lookinClient } from "../lookin-client.js";
+import { lookinClient } from "../client.js";
 
 export const getAttributesTool: Tool = {
   name: "lookin_get_attributes",
@@ -7,11 +7,11 @@ export const getAttributesTool: Tool = {
     "查询指定视图节点的所有 UI 属性，包括颜色、字体、frame、alpha、hidden、约束等。\n" +
     "需要先通过 lookin_get_hierarchy 获取目标视图的 oid。\n" +
     "返回的属性按组（AttributeGroup）和节（Section）分类，每个属性包含：\n" +
-    "- identifier：属性标识符，调用 lookin_modify_attribute 时需要传入\n" +
-    "- setterSelector：修改该属性的 setter 方法名\n" +
+    "- identifier：属性标识符\n" +
+    "- setterSelector：修改该属性的 setter 方法名，传给 lookin_modify_attribute\n" +
     "- attrType：值类型枚举（14=BOOL, 12=float, 13=double, 5=NSInteger, " +
     "20=CGRect, 17=CGPoint, 19=CGSize, 22=UIEdgeInsets, " +
-    "27=UIColor, 25=枚举int, 26=枚举long, 24=NSString）\n" +
+    "23=UIColor, 25=枚举int, 26=枚举long, 24=NSString）\n" +
     "- value：当前值",
   inputSchema: {
     type: "object" as const,
