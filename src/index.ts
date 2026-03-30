@@ -2,11 +2,11 @@
 /**
  * Lookin MCP Server
  *
- * 通过 stdio 实现 MCP 协议，让 Claude Code 能调用 Lookin 的 UI 调试能力：
+ * 通过 stdio 实现 MCP 协议，直连 LookinServer（127.0.0.1:47190），
+ * 让 Claude Code 能直接访问 iOS App 的 UI 视图信息：
  * - lookin_get_hierarchy：获取 iOS App 视图层级树
  * - lookin_get_attributes：查询指定视图的 UI 属性
- * - lookin_modify_attribute：修改视图属性（实时生效）
- * - lookin_get_screenshot：获取视图截图
+ * - lookin_get_screenshot：获取视图截图（实时渲染）
  * - lookin_invoke_method：调用对象方法
  */
 
@@ -19,9 +19,7 @@ import {
 
 import { getHierarchyTool, handleGetHierarchy } from "./tools/get-hierarchy.js";
 import { getAttributesTool, handleGetAttributes } from "./tools/get-attributes.js";
-import { modifyAttributeTool, handleModifyAttribute } from "./tools/modify-attribute.js";
 import { getScreenshotTool, handleGetScreenshot } from "./tools/get-screenshot.js";
-import { refreshScreenshotTool, handleRefreshScreenshot } from "./tools/refresh-screenshot.js";
 import { invokeMethodTool, handleInvokeMethod } from "./tools/invoke-method.js";
 
 // ──────────────────────────────────────────────────────────────
@@ -31,7 +29,7 @@ import { invokeMethodTool, handleInvokeMethod } from "./tools/invoke-method.js";
 const server = new Server(
   {
     name: "lookin-mcp-server",
-    version: "1.0.0",
+    version: "2.0.0",
   },
   {
     capabilities: {
@@ -48,9 +46,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     getHierarchyTool,
     getAttributesTool,
-    modifyAttributeTool,
     getScreenshotTool,
-    refreshScreenshotTool,
     invokeMethodTool,
   ],
 }));
@@ -76,26 +72,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content: [{ type: "text", text }] };
       }
 
-      case "lookin_modify_attribute": {
-        const text = await handleModifyAttribute(
-          args as {
-            oid: number;
-            setterSelector: string;
-            attrType: number;
-            value: unknown;
-          }
-        );
-        return { content: [{ type: "text", text }] };
-      }
-
       case "lookin_get_screenshot": {
-        const content = await handleGetScreenshot(args as { oid: number });
+        const content = await handleGetScreenshot(args as { oid?: number });
         return { content };
-      }
-
-      case "lookin_refresh_screenshot": {
-        const text = await handleRefreshScreenshot(args as { oid: number });
-        return { content: [{ type: "text", text }] };
       }
 
       case "lookin_invoke_method": {
@@ -127,7 +106,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  process.stderr.write("[lookin-mcp-server] Server started\n");
+  process.stderr.write("[lookin-mcp-server] Server started (LookinServer :47190)\n");
 }
 
 main().catch((err) => {
