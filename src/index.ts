@@ -29,7 +29,7 @@ import { invokeMethodTool, handleInvokeMethod } from "./tools/invoke-method.js";
 const server = new Server(
   {
     name: "lookin-mcp-server",
-    version: "2.0.0",
+    version: "1.0.2",
   },
   {
     capabilities: {
