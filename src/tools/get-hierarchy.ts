@@ -1,19 +1,19 @@
 import { Tool } from "@modelcontextprotocol/sdk/types.js";
-import { lookinClient, HierarchyItem } from "../lookin-client.js";
+import { lookinClient, HierarchyItem } from "../client.js";
 
 export const getHierarchyTool: Tool = {
   name: "lookin_get_hierarchy",
   description:
-    "获取当前 iOS App 的 UI 视图层级树。每个节点包含 oid、title（类名）、frame([x,y,w,h])，" +
-    "hidden/alpha 只在非默认值时出现。oid 可传给其他 lookin_* 工具查询属性或截图。" +
-    "默认过滤系统视图（UIKit 私有类），可显著减少返回数据量。",
+    "获取当前 iOS App 的 UI 视图层级树。每个节点包含 oid、className（类名）、frame([x,y,w,h])，" +
+    "hidden/alpha 只在非默认值时出现。oid 可传给其他 lookin_* 工具查询属性或截图。\n" +
+    "注意：直连 LookinServer 时所有视图均返回（不区分系统视图），includeSystemViews 参数无过滤效果。",
   inputSchema: {
     type: "object" as const,
     properties: {
       includeSystemViews: {
         type: "boolean",
         description:
-          "是否包含系统视图（UIKit 私有视图）。默认 false（过滤掉以减少 token 用量）。",
+          "保留参数，直连 LookinServer 时无过滤效果（LookinServer 不标记系统视图）。",
       },
       maxDepth: {
         type: "number",
@@ -23,26 +23,20 @@ export const getHierarchyTool: Tool = {
   },
 };
 
-function filterItems(
+function limitDepth(
   items: HierarchyItem[],
-  includeSystem: boolean,
   maxDepth: number,
   currentDepth = 0
 ): HierarchyItem[] {
   if (maxDepth > 0 && currentDepth >= maxDepth) return [];
-  const result: HierarchyItem[] = [];
-  for (const item of items) {
-    const filteredChildren = filterItems(item.children, includeSystem, maxDepth, currentDepth + 1);
-    if (includeSystem || !item.sys) {
-      // 保留此节点，去掉 sys 标记以减少输出体积
-      const { sys, ...rest } = item;
-      result.push({ ...rest, children: filteredChildren });
-    } else {
-      // 系统视图被过滤：将其子节点提升到当前层级，避免丢失 app 自定义视图
-      result.push(...filteredChildren);
-    }
-  }
-  return result;
+  return items.map((item) => ({
+    ...item,
+    children: limitDepth(item.children, maxDepth, currentDepth + 1),
+  }));
+}
+
+function countItems(list: HierarchyItem[]): number {
+  return list.reduce((sum, item) => sum + 1 + countItems(item.children), 0);
 }
 
 export async function handleGetHierarchy(args: {
@@ -50,17 +44,10 @@ export async function handleGetHierarchy(args: {
   maxDepth?: number;
 }): Promise<string> {
   const result = await lookinClient.getHierarchy();
-  // 默认 false：过滤系统视图，大幅减少节点数量
-  const includeSystem = args.includeSystemViews === true;
   const maxDepth = args.maxDepth ?? 0;
 
-  const items = filterItems(result.items, includeSystem, maxDepth);
+  const items = maxDepth > 0 ? limitDepth(result.items, maxDepth) : result.items;
 
-  function countItems(list: HierarchyItem[]): number {
-    return list.reduce((sum, item) => sum + 1 + countItems(item.children), 0);
-  }
-
-  // 紧凑 JSON（无缩进），显著减少 token 用量
   return JSON.stringify({
     appName: result.appName,
     totalViews: countItems(items),
