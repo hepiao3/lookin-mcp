@@ -148,8 +148,3 @@ mcp_servers:
 3. lookin_get_screenshot(oid)    → 截图查看当前 UI 状态
 ```
 
----
-
-## License
-
-MIT
