@@ -6,8 +6,18 @@ MCP Server for iOS UI inspection — lets any AI agent (Claude Code, Cursor, Cod
 
 ## Prerequisites
 
-- iOS App integrated with [LookinServer](https://github.com/QMUI/LookinServer), running on simulator or device
+- iOS App integrated with [LookinServerMCP](https://github.com/hepiao3/LookinServer), running on simulator or device
 - Node.js 18+
+
+### iOS Integration
+
+Add the following to your `Podfile`:
+
+```ruby
+pod 'LookinServerMCP', :configurations => ['Debug']
+```
+
+> Only included in Debug builds — safe to leave in your Podfile permanently.
 
 ---
 
