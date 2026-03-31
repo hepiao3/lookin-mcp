@@ -1,19 +1,5 @@
 import { Tool } from "@modelcontextprotocol/sdk/types.js";
 import { lookinClient } from "../client.js";
-import { execSync } from "child_process";
-import { writeFileSync, unlinkSync } from "fs";
-import { tmpdir } from "os";
-import { join } from "path";
-
-function copyImageToClipboard(base64: string): void {
-  const tmpFile = join(tmpdir(), `lookin_screenshot_${Date.now()}.png`);
-  try {
-    writeFileSync(tmpFile, Buffer.from(base64, "base64"));
-    execSync(`osascript -e 'set the clipboard to (read (POSIX file "${tmpFile}") as «class PNGf»)'`);
-  } finally {
-    try { unlinkSync(tmpFile); } catch {}
-  }
-}
 
 export const getScreenshotTool: Tool = {
   name: "lookin_get_screenshot",
@@ -52,13 +38,6 @@ export async function handleGetScreenshot(
     return [{ type: "text", text: "Screenshot not available for this view." }];
   }
 
-  let clipboardNote = " (copied to clipboard)";
-  try {
-    copyImageToClipboard(result.imageBase64);
-  } catch {
-    clipboardNote = " (clipboard copy failed)";
-  }
-
   return [
     {
       type: "image",
@@ -67,7 +46,7 @@ export async function handleGetScreenshot(
     },
     {
       type: "text",
-      text: `Screenshot captured: ${result.width}×${result.height}px${clipboardNote}`,
+      text: `Screenshot captured: ${result.width}×${result.height}px`,
     },
   ];
 }

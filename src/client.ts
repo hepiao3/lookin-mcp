@@ -143,11 +143,4 @@ export const lookinClient = {
   getScreenshot(oid: number): Promise<ScreenshotResult> {
     return request<ScreenshotResult>("GET", `/view/${oid}/screenshot`);
   },
-
-  invokeMethod(oid: number, method: string): Promise<{ result: string }> {
-    return request<{ result: string }>("POST", "/console/invoke", {
-      oid,
-      method,
-    });
-  },
 };

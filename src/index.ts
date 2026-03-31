@@ -7,7 +7,6 @@
  * - lookin_get_hierarchy：获取 iOS App 视图层级树
  * - lookin_get_attributes：查询指定视图的 UI 属性
  * - lookin_get_screenshot：获取视图截图（实时渲染）
- * - lookin_invoke_method：调用对象方法
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -20,7 +19,6 @@ import {
 import { getHierarchyTool, handleGetHierarchy } from "./tools/get-hierarchy.js";
 import { getAttributesTool, handleGetAttributes } from "./tools/get-attributes.js";
 import { getScreenshotTool, handleGetScreenshot } from "./tools/get-screenshot.js";
-import { invokeMethodTool, handleInvokeMethod } from "./tools/invoke-method.js";
 
 // ──────────────────────────────────────────────────────────────
 // Server setup
@@ -47,7 +45,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     getHierarchyTool,
     getAttributesTool,
     getScreenshotTool,
-    invokeMethodTool,
   ],
 }));
 
@@ -75,13 +72,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "lookin_get_screenshot": {
         const content = await handleGetScreenshot(args as { oid?: number });
         return { content };
-      }
-
-      case "lookin_invoke_method": {
-        const text = await handleInvokeMethod(
-          args as { oid: number; method: string }
-        );
-        return { content: [{ type: "text", text }] };
       }
 
       default:
