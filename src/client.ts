@@ -1,10 +1,11 @@
 /**
  * LookinServer HTTP 客户端
- * 封装与 LookinServer 内置 HTTP Server（127.0.0.1:47190）的通讯
+ * 封装与 LookinServer 内置 HTTP Server 的通讯
  * 直连 iOS App，无需 Lookin.app 中转
  */
 
-const BASE_URL = "http://127.0.0.1:47190";
+import { deviceManager } from "./device-manager.js";
+
 const REQUEST_TIMEOUT_MS = 15000;
 
 export interface LookinResponse<T = unknown> {
@@ -77,6 +78,8 @@ async function request<T>(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
+  const BASE_URL = deviceManager.getBaseUrl();
+
   try {
     const response = await fetch(`${BASE_URL}${path}`, {
       method,
@@ -103,10 +106,12 @@ async function request<T>(
       (err.message.includes("ECONNREFUSED") ||
         err.message.includes("fetch failed"))
     ) {
-      throw new Error(
-        "Cannot connect to LookinServer (127.0.0.1:47190). " +
-        "Make sure the iOS App with LookinServer is running in the foreground."
-      );
+      const target = deviceManager.getActiveTarget();
+      const hint =
+        target.type === "device"
+          ? `Make sure the iOS app with LookinServer is running in the foreground on the device (${target.udid}).`
+          : "Make sure the iOS App with LookinServer is running in the foreground in the simulator.";
+      throw new Error(`Cannot connect to LookinServer (${BASE_URL}). ${hint}`);
     }
     throw err;
   } finally {

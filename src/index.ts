@@ -19,6 +19,9 @@ import {
 import { getHierarchyTool, handleGetHierarchy } from "./tools/get-hierarchy.js";
 import { getAttributesTool, handleGetAttributes } from "./tools/get-attributes.js";
 import { getScreenshotTool, handleGetScreenshot } from "./tools/get-screenshot.js";
+import { listDevicesTool, handleListDevices } from "./tools/list-devices.js";
+import { connectDeviceTool, handleConnectDevice } from "./tools/connect-device.js";
+import { deviceManager } from "./device-manager.js";
 
 // ──────────────────────────────────────────────────────────────
 // Server setup
@@ -45,6 +48,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     getHierarchyTool,
     getAttributesTool,
     getScreenshotTool,
+    listDevicesTool,
+    connectDeviceTool,
   ],
 }));
 
@@ -74,6 +79,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { content };
       }
 
+      case "lookin_list_devices": {
+        const text = await handleListDevices();
+        return { content: [{ type: "text", text }] };
+      }
+
+      case "lookin_connect_device": {
+        const text = await handleConnectDevice(args as { target: string });
+        return { content: [{ type: "text", text }] };
+      }
+
       default:
         return {
           content: [{ type: "text", text: `Unknown tool: ${name}` }],
@@ -96,6 +111,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
+
+  // Clean up iproxy subprocess on exit
+  process.on("exit", () => { deviceManager.shutdown(); });
+  process.on("SIGINT", async () => { await deviceManager.shutdown(); process.exit(0); });
+  process.on("SIGTERM", async () => { await deviceManager.shutdown(); process.exit(0); });
+
   process.stderr.write("[lookin-mcp-server] Server started (LookinServer :47190)\n");
 }
 
