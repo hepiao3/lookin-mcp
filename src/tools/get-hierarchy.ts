@@ -4,20 +4,20 @@ import { lookinClient, HierarchyItem } from "../client.js";
 export const getHierarchyTool: Tool = {
   name: "lookin_get_hierarchy",
   description:
-    "获取当前 iOS App 的 UI 视图层级树。每个节点包含 oid、className（类名）、frame([x,y,w,h])，" +
-    "hidden/alpha 只在非默认值时出现。oid 可传给其他 lookin_* 工具查询属性或截图。\n" +
-    "注意：直连 LookinServer 时所有视图均返回（不区分系统视图），includeSystemViews 参数无过滤效果。",
+    "Get the UI view hierarchy tree of the current iOS app. Each node contains oid, className, frame([x,y,w,h]), " +
+    "hidden/alpha only appear for non-default values. oid can be passed to other lookin_* tools to query attributes or screenshots.\n" +
+    "Note: when directly connected to LookinServer, all views are returned (system views are not distinguished), includeSystemViews parameter has no filtering effect.",
   inputSchema: {
     type: "object" as const,
     properties: {
       includeSystemViews: {
         type: "boolean",
         description:
-          "保留参数，直连 LookinServer 时无过滤效果（LookinServer 不标记系统视图）。",
+          "Reserved parameter. When directly connected to LookinServer, it has no filtering effect (LookinServer does not mark system views).",
       },
       maxDepth: {
         type: "number",
-        description: "最大层级深度限制。不传则返回全部层级。",
+        description: "Maximum hierarchy depth limit. If not provided, returns all levels.",
       },
     },
   },

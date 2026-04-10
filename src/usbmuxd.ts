@@ -1,12 +1,12 @@
 /**
- * usbmuxd 最小客户端
+ * Minimal usbmuxd client
  *
- * macOS 内置 usbmuxd 守护进程监听 /var/run/usbmuxd Unix socket。
- * 通过它可以：
- *   1. listDevices()      — 列出当前 USB 连接的 iOS 设备
- *   2. connectToDevice()  — 建立到设备指定端口的透明 TCP 隧道
+ * The macOS built-in usbmuxd daemon listens on /var/run/usbmuxd Unix socket.
+ * Through it we can:
+ *   1. listDevices()      — list currently USB-connected iOS devices
+ *   2. connectToDevice()  — establish a transparent TCP tunnel to a specific port on the device
  *
- * 协议格式（Binary plist 模式）：
+ * Protocol format (Binary plist mode):
  *   [4B totalLength LE][4B version=1][4B msgType=8][4B tag LE][binary plist body]
  */
 

@@ -2,11 +2,11 @@
 /**
  * Lookin MCP Server
  *
- * 通过 stdio 实现 MCP 协议，直连 LookinServer（127.0.0.1:47190），
- * 让 Claude Code 能直接访问 iOS App 的 UI 视图信息：
- * - lookin_get_hierarchy：获取 iOS App 视图层级树
- * - lookin_get_attributes：查询指定视图的 UI 属性
- * - lookin_get_screenshot：获取视图截图（实时渲染）
+ * Implements MCP protocol via stdio, directly connects to LookinServer (127.0.0.1:47190),
+ * allowing Claude Code to directly access iOS App UI view information:
+ * - lookin_get_hierarchy: get iOS App view hierarchy tree
+ * - lookin_get_attributes: query UI attributes of a specified view
+ * - lookin_get_screenshot: get view screenshot (real-time rendering)
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -73,9 +73,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           type: "text",
           text: JSON.stringify({
             error: "multiple_devices",
-            message: "检测到多台设备，请先使用 lookin_connect_device 选择一台设备后再查看页面信息。",
+            message: "Multiple devices detected. Please use lookin_connect_device to select a device before viewing page information.",
             availableDevices: devices,
-            hint: `可用设备：\n${deviceList}`,
+            hint: `Available devices:\n${deviceList}`,
           }),
         }],
       };

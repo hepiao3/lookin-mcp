@@ -1,13 +1,13 @@
 /**
  * DeviceManager
  *
- * 管理 lookin-mcp 的连接目标（模拟器 or USB 真机）。
+ * Manages lookin-mcp connection targets (simulator or USB physical device).
  *
- * 真机模式：在 127.0.0.1:47191 启动一个本地 TCP 代理服务，
- * 每个入站连接通过 usbmuxd Unix socket 建立到设备 :47190 的隧道并双向管道转发。
- * client.ts 的 fetch 逻辑无需任何改动。
+ * Physical device mode: starts a local TCP proxy on 127.0.0.1:47191,
+ * each inbound connection is tunneled to device :47190 via usbmuxd Unix socket with bidirectional piping.
+ * client.ts fetch logic requires no changes.
  *
- * 依赖：macOS 内置 usbmuxd（/var/run/usbmuxd），零外部工具依赖。
+ * Dependency: macOS built-in usbmuxd (/var/run/usbmuxd), zero external tool dependencies.
  */
 
 import * as net from "net";

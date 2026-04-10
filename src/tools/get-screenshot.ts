@@ -4,17 +4,17 @@ import { lookinClient } from "../client.js";
 export const getScreenshotTool: Tool = {
   name: "lookin_get_screenshot",
   description:
-    "获取指定视图的截图（PNG 格式，base64 编码）。" +
-    "oid 可选，不传时自动截取根视图（window）全屏截图。" +
-    "每次调用都会从 iOS App 实时渲染，无需提前刷新缓存。" +
-    "返回 imageBase64 字段为 base64 编码的 PNG 图片数据。",
+    "Get a screenshot of the specified view (PNG format, base64 encoded). " +
+    "oid is optional. If not provided, automatically takes a full-screen screenshot of the root view (window). " +
+    "Each call is rendered in real-time from the iOS app, no need to refresh cache in advance. " +
+    "Returns imageBase64 field containing base64-encoded PNG image data.",
   inputSchema: {
     type: "object" as const,
     properties: {
       oid: {
         type: "number",
         description:
-          "目标视图的 object ID（从 lookin_get_hierarchy 的 oid 字段获取）。不传则默认使用根视图（window）。",
+          "Object ID of the target view (get from lookin_get_hierarchy's oid field). If not provided, defaults to using the root view (window).",
       },
     },
   },

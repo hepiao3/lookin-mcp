@@ -1,7 +1,7 @@
 /**
- * LookinServer HTTP 客户端
- * 封装与 LookinServer 内置 HTTP Server 的通讯
- * 直连 iOS App，无需 Lookin.app 中转
+ * LookinServer HTTP client
+ * Encapsulates communication with LookinServer's built-in HTTP server
+ * Direct connection to iOS app, no Lookin.app relay needed
  */
 
 import { deviceManager } from "./device-manager.js";
