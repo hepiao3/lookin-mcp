@@ -11,6 +11,7 @@
  */
 
 import * as net from "net";
+import { execSync } from "child_process";
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const bplistCreator = require("bplist-creator") as (obj: unknown) => Buffer;
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -62,8 +63,17 @@ function sendRecv(
 
       const body = received.slice(16, totalLen);
       try {
-        const result = bplistParser.parseBuffer(body);
-        resolve(result[0]);
+        let parsed: Record<string, unknown>;
+        // usbmuxd on macOS may respond with XML plist even when request is binary plist
+        if (body[0] === 0x62 && body[1] === 0x70 && body[2] === 0x6c && body[3] === 0x69) {
+          // Binary plist (starts with 'bpli')
+          parsed = bplistParser.parseBuffer(body)[0];
+        } else {
+          // XML plist — convert via macOS built-in plutil
+          const json = execSync("plutil -convert json -o - -", { input: body }).toString();
+          parsed = JSON.parse(json);
+        }
+        resolve(parsed);
       } catch (e) {
         reject(e);
       }
@@ -107,6 +117,67 @@ export async function listUsbDevices(): Promise<UsbDevice[]> {
   } finally {
     sock.destroy();
   }
+}
+
+export interface DeviceEvent {
+  type: "attached" | "detached";
+  deviceId: number;
+  udid?: string;
+}
+
+/**
+ * Subscribe to usbmuxd device attach/detach events.
+ * Calls `onEvent` for each event. Returns a `stop()` function to close the watch.
+ */
+export async function watchDevices(onEvent: (event: DeviceEvent) => void): Promise<() => void> {
+  const sock = await connectSocket();
+
+  // Send Listen request (fire-and-forget, don't use sendRecv — we need the socket to stay open)
+  sock.write(buildMsg(2, { MessageType: "Listen" }));
+
+  let buf = Buffer.alloc(0);
+
+  const onData = (chunk: Buffer) => {
+    buf = Buffer.concat([buf, chunk]);
+    // Parse all complete frames in the buffer
+    while (buf.length >= 16) {
+      const totalLen = buf.readUInt32LE(0);
+      if (buf.length < totalLen) break;
+
+      const body = buf.slice(16, totalLen);
+      buf = buf.slice(totalLen);
+
+      let parsed: Record<string, unknown>;
+      try {
+        if (body[0] === 0x62 && body[1] === 0x70 && body[2] === 0x6c && body[3] === 0x69) {
+          parsed = bplistParser.parseBuffer(body)[0];
+        } else {
+          const json = execSync("plutil -convert json -o - -", { input: body }).toString();
+          parsed = JSON.parse(json);
+        }
+      } catch {
+        continue;
+      }
+
+      const msgType = parsed.MessageType as string;
+      if (msgType === "Attached") {
+        const props = parsed.Properties as { SerialNumber?: string; ConnectionType?: string } | undefined;
+        if (props?.ConnectionType === "USB") {
+          onEvent({ type: "attached", deviceId: parsed.DeviceID as number, udid: props.SerialNumber });
+        }
+      } else if (msgType === "Detached") {
+        onEvent({ type: "detached", deviceId: parsed.DeviceID as number });
+      }
+    }
+  };
+
+  sock.on("data", onData);
+  sock.once("error", () => sock.destroy());
+
+  return () => {
+    sock.off("data", onData);
+    sock.destroy();
+  };
 }
 
 /**
