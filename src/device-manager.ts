@@ -11,7 +11,8 @@
  */
 
 import * as net from "net";
-import { listUsbDevices, connectToDevice } from "./usbmuxd.js";
+import { execSync } from "child_process";
+import { listUsbDevices, connectToDevice, watchDevices } from "./usbmuxd.js";
 
 const LOOKINSERVER_PORT = 47190;
 const DEVICE_PROXY_PORT = 47191;
@@ -23,13 +24,17 @@ export type ConnectionTarget =
 export interface DeviceInfo {
   udid: string;
   name: string;
-  type: "physical";
+  type: "physical" | "simulator";
 }
 
 class DeviceManager {
   private _activeTarget: ConnectionTarget = { type: "simulator" };
   private _proxyServer: net.Server | null = null;
   private _activeDeviceId: number | null = null;
+  private _needsDeviceSelection = false;
+  private _stopWatch: (() => void) | null = null;
+  /** deviceId → udid map, kept in sync by watchDevices */
+  private _deviceIdMap = new Map<number, string>();
 
   getBaseUrl(): string {
     return this._activeTarget.type === "device"
@@ -41,23 +46,100 @@ class DeviceManager {
     return this._activeTarget;
   }
 
-  /** List iOS devices connected via USB (uses usbmuxd directly, no external tools). */
+  needsDeviceSelection(): boolean {
+    return this._needsDeviceSelection;
+  }
+
+  /** Called at startup: auto-connect if exactly 1 device, otherwise flag for manual selection. */
+  async autoConnect(): Promise<void> {
+    const devices = await this.listDevices();
+    if (devices.length === 1) {
+      const device = devices[0];
+      if (device.type === "physical") {
+        await this.connectDevice(device.udid);
+      }
+      this._needsDeviceSelection = false;
+    } else if (devices.length > 1) {
+      this._needsDeviceSelection = true;
+    }
+
+    // Start watching for device connect/disconnect events
+    if (!this._stopWatch) {
+      watchDevices((event) => {
+        if (event.type === "attached" && event.udid) {
+          this._deviceIdMap.set(event.deviceId, event.udid);
+        } else if (event.type === "detached") {
+          const detachedUdid = this._deviceIdMap.get(event.deviceId);
+          this._deviceIdMap.delete(event.deviceId);
+
+          // If the active physical device was disconnected, re-run auto-connect
+          if (
+            this._activeTarget.type === "device" &&
+            detachedUdid === this._activeTarget.udid
+          ) {
+            process.stderr.write(`[lookin-mcp] Device ${detachedUdid} disconnected, re-connecting...\n`);
+            this._stopProxy().then(() => {
+              this._activeTarget = { type: "simulator" };
+              this.autoConnect().catch(() => { /* non-fatal */ });
+            });
+          }
+        }
+      }).then((stop) => {
+        this._stopWatch = stop;
+      }).catch(() => { /* usbmuxd watch unavailable, skip */ });
+    }
+  }
+
+  /** List iOS devices connected via USB and running simulators. */
   async listDevices(): Promise<DeviceInfo[]> {
-    const devices = await listUsbDevices();
-    return devices.map((d) => ({
-      udid: d.udid,
-      name: d.udid, // usbmuxd doesn't expose device name; UDID is sufficient for connection
-      type: "physical" as const,
-    }));
+    const [physicalDevices, simulators] = await Promise.all([
+      listUsbDevices().then((devices) =>
+        devices.map((d) => ({
+          udid: d.udid,
+          name: d.udid,
+          type: "physical" as const,
+        }))
+      ),
+      this._listBootedSimulators(),
+    ]);
+    return [...physicalDevices, ...simulators];
+  }
+
+  private _listBootedSimulators(): DeviceInfo[] {
+    try {
+      const output = execSync("xcrun simctl list devices booted --json", { encoding: "utf-8" });
+      const data = JSON.parse(output) as {
+        devices: Record<string, Array<{ udid: string; name: string; state: string }>>;
+      };
+      const result: DeviceInfo[] = [];
+      for (const devices of Object.values(data.devices)) {
+        for (const dev of devices) {
+          if (dev.state === "Booted") {
+            result.push({ udid: dev.udid, name: dev.name, type: "simulator" });
+          }
+        }
+      }
+      return result;
+    } catch {
+      return [];
+    }
   }
 
   async connectSimulator(): Promise<void> {
     await this._stopProxy();
     this._activeDeviceId = null;
     this._activeTarget = { type: "simulator" };
+    this._needsDeviceSelection = false;
   }
 
   async connectDevice(udid: string): Promise<void> {
+    // Check if the UDID belongs to a booted simulator
+    const simulators = this._listBootedSimulators();
+    if (simulators.some((s) => s.udid === udid)) {
+      await this.connectSimulator();
+      return;
+    }
+
     const devices = await listUsbDevices();
     const dev = devices.find((d) => d.udid === udid);
     if (!dev) {
@@ -70,6 +152,7 @@ class DeviceManager {
     this._activeDeviceId = dev.deviceId;
     await this._startProxy(dev.deviceId);
     this._activeTarget = { type: "device", udid };
+    this._needsDeviceSelection = false;
   }
 
   /**
@@ -124,6 +207,8 @@ class DeviceManager {
   }
 
   async shutdown(): Promise<void> {
+    this._stopWatch?.();
+    this._stopWatch = null;
     await this._stopProxy();
   }
 }
