@@ -61,6 +61,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
 
   try {
+    // For view tools, check if the user needs to select a device first
+    const viewTools = ["lookin_get_hierarchy", "lookin_get_attributes", "lookin_get_screenshot"];
+    if (viewTools.includes(name) && deviceManager.needsDeviceSelection()) {
+      const devices = await deviceManager.listDevices();
+      const deviceList = devices
+        .map((d) => `- ${d.name} (${d.type}) — UDID: ${d.udid}`)
+        .join("\n");
+      return {
+        content: [{
+          type: "text",
+          text: JSON.stringify({
+            error: "multiple_devices",
+            message: "检测到多台设备，请先使用 lookin_connect_device 选择一台设备后再查看页面信息。",
+            availableDevices: devices,
+            hint: `可用设备：\n${deviceList}`,
+          }),
+        }],
+      };
+    }
+
     switch (name) {
       case "lookin_get_hierarchy": {
         const text = await handleGetHierarchy(
@@ -118,6 +138,9 @@ async function main() {
   process.on("SIGTERM", async () => { await deviceManager.shutdown(); process.exit(0); });
 
   process.stderr.write("[lookin-mcp-server] Server started (LookinServer :47190)\n");
+
+  // Auto-connect if exactly 1 device is available
+  deviceManager.autoConnect().catch(() => { /* non-fatal */ });
 }
 
 main().catch((err) => {
