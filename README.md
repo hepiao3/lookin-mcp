@@ -23,6 +23,11 @@ pod 'LookinServerMCP', :configurations => ['Debug']
 
 ## How It Works
 
+### Device Support
+
+The MCP Server supports both iOS simulators and physical devices:
+
+**iOS Simulator:**
 ```
 AI Agent (Claude Code / Cursor / Codex / ...)
     ↓ stdio (MCP protocol)
@@ -31,7 +36,21 @@ lookin-mcp-ios (Node.js)
 LookinServer (embedded in iOS App)
 ```
 
-The MCP Server communicates directly with LookinServer embedded in your iOS app over local HTTP, no Lookin.app relay needed.
+**Physical Device:**
+```
+AI Agent (Claude Code / Cursor / Codex / ...)
+    ↓ stdio (MCP protocol)
+lookin-mcp-ios (Node.js)
+    ↓ native usbmuxd socket (/var/run/usbmuxd)
+    ↓ TCP proxy on :47191
+LookinServer (embedded in iOS App)
+```
+
+### Device Selection
+
+- **Single device**: Automatically connects when the app starts
+- **Multiple devices**: Prompts user to select device via `lookin_connect_device` tool
+- **Device events**: Automatically reconnects when a physical device is unplugged (falls back to simulator)
 
 ---
 
@@ -74,6 +93,48 @@ mcp_servers:
 ---
 
 ## Tools
+
+### `lookin_list_devices`
+
+Lists all connectable iOS targets: USB physical devices and booted simulators.
+
+**Parameters:** None
+
+**Response:** JSON object containing:
+- `activeTarget` — currently connected target (type: `"simulator"` or `"physical"`)
+- `devices` — array of available devices, each with:
+  - `udid` — unique device identifier
+  - `name` — device name (e.g. "iPhone 15 Pro")
+  - `type` — device type (`"simulator"` or `"physical"`)
+- `hint` — usage instructions
+
+**Example response:**
+```json
+{
+  "activeTarget": { "type": "simulator" },
+  "devices": [
+    { "udid": "ABC123...", "name": "iPhone 16 Pro", "type": "simulator" },
+    { "udid": "XYZ789...", "name": "John's iPhone", "type": "physical" }
+  ],
+  "hint": "Found 2 device(s). Use lookin_connect_device with a udid to connect."
+}
+```
+
+---
+
+### `lookin_connect_device`
+
+Switch the connection target to a physical device or simulator.
+
+**Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `target` | string | Yes | Device UDID (from `lookin_list_devices`) or `"simulator"` to use the default simulator |
+
+**Response:** Confirmation message and connection status
+
+---
 
 ### `lookin_get_hierarchy`
 
@@ -152,7 +213,11 @@ Captures a screenshot of a specified view from the live iOS app rendering.
 ## Typical Workflow
 
 ```
-1. lookin_get_hierarchy          → get the view tree and find the target view's oid
-2. lookin_get_attributes(oid)    → inspect all attributes of that view
-3. lookin_get_screenshot(oid)    → capture a screenshot to see the current UI state
+1. lookin_list_devices           → list available iOS targets (simulators and physical devices)
+2. lookin_connect_device(target) → select the target device (if multiple devices available)
+3. lookin_get_hierarchy          → get the view tree and find the target view's oid
+4. lookin_get_attributes(oid)    → inspect all attributes of that view
+5. lookin_get_screenshot(oid)    → capture a screenshot to see the current UI state
 ```
+
+> If only one device is available, steps 1-2 are handled automatically at startup.
