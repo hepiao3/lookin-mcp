@@ -4,9 +4,9 @@ import { deviceManager } from "../device-manager.js";
 export const listDevicesTool: Tool = {
   name: "lookin_list_devices",
   description:
-    "List all iOS physical devices currently connected via USB, and show the active connection target (simulator or a specific device). " +
-    "Call this before switching to real device debugging to get the device UDID. " +
-    "Uses macOS built-in usbmuxd — no additional tools required.",
+    "List all connectable iOS targets: USB physical devices and booted simulators. " +
+    "Shows the active connection target. Call this to get a UDID before switching targets. " +
+    "Uses macOS built-in usbmuxd for physical devices and xcrun simctl for simulators.",
   inputSchema: {
     type: "object" as const,
     properties: {},

@@ -16,7 +16,7 @@ export const connectDeviceTool: Tool = {
       target: {
         type: "string",
         description:
-          "Device UDID to connect to a physical device, or 'simulator' to switch back to the simulator.",
+          "Device UDID to connect to a physical device or simulator (from lookin_list_devices), or 'simulator' to switch to the default simulator.",
       },
     },
     required: ["target"],
